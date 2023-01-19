@@ -1,0 +1,5 @@
+1，timeout 双用问题，fixing
+2，ParseTheFile不支持类似--location后没有值的args
+3，code只支持statuscode
+4，强制https cert key 认证
+5，其他认证方式需要以插件方式引入

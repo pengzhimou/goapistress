@@ -1,0 +1,14 @@
+ peer
+请求失败: Get "http://127.0.0.1:888/querycount": read tcp 127.0.0.1:64478->127.0.0.1:888: read: connection reset by peer
+请求失败: Get "http://127.0.0.1:888/querycount": read tcp 127.0.0.1:64480->127.0.0.1:888: read: connection reset by peer
+请求失败: Get "http://127.0.0.1:888/querycount": read tcp 127.0.0.1:64481->127.0.0.1:888: read: connection reset by peer
+请求失败: Get "http://127.0.0.1:888/querycount": read tcp 127.0.0.1:64483->127.0.0.1:888: read: connection reset by peer
+请求失败: Get "http://127.0.0.1:888/querycount": read tcp 127.0.0.1:64490->127.0.0.1:888: read: connection reset by peer
+请求失败: Get "http://127.0.0.1:888/querycount": read tcp 127.0.0.1:64493->127.0.0.1:888: read: connection reset by peer
+请求失败: Get "http://127.0.0.1:888/querycount": read tcp 127.0.0.1:64495->127.0.0.1:888: read: connection reset by peer
+请求失败: Get "http://127.0.0.1:888/querycount": dial tcp 127.0.0.1:888: connect: operation timed out
+请求失败: Get "http://127.0.0.1:888/querycount": dial tcp 127.0.0.1:888: connect: operation timed out
+请求失败: Get "http://127.0.0.1:888/querycount": dial tcp 127.0.0.1:888: connect: operation timed out
+请求失败: Get "http://127.0.0.1:888/querycount": dial tcp 127.0.0.1:888: connect: operation timed out
+请求失败: Get "http://127.0.0.1:888/querycount": dial tcp 127.0.0.1:888: connect: operation timed out
+请求失败: Get "http://127.0.0.1:888/querycount": context deadline exceeded (Client.Timeout exceeded while awaiting headers)

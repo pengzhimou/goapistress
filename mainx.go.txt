@@ -1,0 +1,11 @@
+package main
+
+import (
+	"fmt"
+	"goapistress/model"
+)
+
+func main() {
+	a, b := model.ParseTheFile("/Users/robinpeng/Desktop/curl.txt")
+	fmt.Println(a, b)
+}

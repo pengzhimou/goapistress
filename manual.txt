@@ -1,0 +1,1 @@
+➜  goapistress git:(robin) ✗ ./goapistress -c 1  -m 2 -n 100  -u http://127.0.0.1:888/querycount2 -x GET
