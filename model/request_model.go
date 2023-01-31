@@ -81,12 +81,12 @@ type RequestForm struct {
 	Headers       map[string]string // Headers
 	Body          string            // body
 	Verify        string            // 验证的方法
+	StatusCode    int               // 验证的状态码
 	ClientTimeout time.Duration     // 请求超时时间
 	Debug         bool              // 是否开启Debug模式
 	MaxCon        int               // 每个连接的请求数
 	HTTP2         bool              // 是否使用http2.0
 	Keepalive     bool              // 是否开启长连接
-	Code          int               // 验证的状态码
 }
 
 // GetBody 获取请求数据
@@ -173,7 +173,7 @@ func NewReqForm(requrl, method, verify string, statusCode int, clientTimeout tim
 		}
 	}
 
-	// http和websocket默认检查方法赋值
+	// http和websocket默认检查方法是否存在的预检查
 	var ok bool
 	switch mainProtocol {
 	case MPTypeHTTP:
@@ -212,7 +212,7 @@ func NewReqForm(requrl, method, verify string, statusCode int, clientTimeout tim
 		MaxCon:        maxCon,
 		HTTP2:         http2,
 		Keepalive:     keepalive,
-		Code:          statusCode,
+		StatusCode:    statusCode,
 	}
 	return
 }

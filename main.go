@@ -38,8 +38,8 @@ var (
 	headers           array            // 自定义头信息传递给服务器
 	body                     = ""      // HTTP POST方式传送数据
 	verify                   = ""      // verify 验证方法 在server/verify中 http 支持:statusCode、json webSocket支持:json
-	maxCon                   = 1       // 单个连接最大请求数
 	statusCode               = 200     // 成功状态码
+	maxCon                   = 1       // 单个连接最大请求数
 	http2                    = false   // 是否开http2.0
 	keepalive                = false   // 是否开启长连接
 	cpuNumber                = 1       // CPU 核数，一般场景下单核已经够用了

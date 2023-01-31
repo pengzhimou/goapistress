@@ -6,11 +6,10 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"goapistress/model"
 	"io"
 	"io/ioutil"
 	"net/http"
-
-	"goapistress/model"
 )
 
 // getZipData 处理gzip压缩
@@ -36,7 +35,7 @@ func HTTPStatusCode(request *model.RequestForm, response *http.Response) (code i
 		_ = response.Body.Close()
 	}()
 	code = response.StatusCode
-	if code == request.Code {
+	if code == request.StatusCode {
 		isSucceed = true
 	}
 	// 开启调试模式
@@ -79,7 +78,40 @@ func HTTPJson(request *model.RequestForm, response *http.Response) (code int, is
 			} else {
 				code = responseJSON.Code
 				// body 中code返回200为返回数据成功
-				if responseJSON.Code == request.Code {
+				if responseJSON.Code == request.StatusCode {
+					isSucceed = true
+				}
+			}
+		}
+		// 开启调试模式
+		if request.GetDebug() {
+			fmt.Printf("请求结果 httpCode:%d body:%s err:%v \n", response.StatusCode, string(body), err)
+		}
+	}
+	io.Copy(ioutil.Discard, response.Body)
+	return
+}
+
+func HTTPJsonManual(request *model.RequestForm, response *http.Response) (code int, isSucceed bool) {
+	defer func() {
+		_ = response.Body.Close()
+	}()
+	code = response.StatusCode
+	if code == http.StatusOK {
+		body, err := getZipData(response)
+		if err != nil {
+			code = model.ParseError
+			fmt.Printf("请求结果 ioutil.ReadAll err:%v", err)
+		} else {
+			responseJSON := &ResponseJSON{}
+			err = json.Unmarshal(body, responseJSON)
+			if err != nil {
+				code = model.ParseError
+				fmt.Printf("请求结果 json.Unmarshal err:%v", err)
+			} else {
+				code = responseJSON.Code
+				// body 中code返回200为返回数据成功
+				if responseJSON.Code == request.StatusCode {
 					isSucceed = true
 				}
 			}
