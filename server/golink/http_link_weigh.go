@@ -16,7 +16,7 @@ type ReqListWeigh struct {
 
 // Req req
 type Req struct {
-	req     *model.RequestForm // 请求信息
+	reqF    *model.RequestForm // 请求信息
 	weights uint32             // 权重，数字越大访问频率越高
 }
 
@@ -38,7 +38,7 @@ func init() {
 	// TODO::压测多个接口示例
 	// 需要压测的接口参数
 	clients := make([]Req, 0)
-	clients = append(clients, Req{req: &model.RequestForm{
+	clients = append(clients, Req{reqF: &model.RequestForm{
 		URL:    "https://page.aliyun.com/delivery/plan/list", // 请求url
 		MP:     "http",                                       // 请求方式 示例参数:http/webSocket/tcp
 		Method: "POST",                                       // 请求方法 示例参数:GET/POST/PUT
@@ -52,7 +52,7 @@ func init() {
 		Debug:         false,                                                                                                                                                               // 是否开启Debug模式
 	}, weights: 2})
 
-	clients = append(clients, Req{req: &model.RequestForm{
+	clients = append(clients, Req{reqF: &model.RequestForm{
 		URL:    "https://page.aliyun.com/delivery/plan/list", // 请求url
 		MP:     "http",                                       // 请求方式 示例参数:http/webSocket/tcp
 		Method: "POST",                                       // 请求方法 示例参数:GET/POST/PUT
@@ -78,9 +78,9 @@ func init() {
 }
 
 // getRequest 获取请求
-func getRequest(request *model.RequestForm) *model.RequestForm {
+func getRequest(reqForm *model.RequestForm) *model.RequestForm {
 	if clientWeigh == nil || clientWeigh.weighCount <= 0 {
-		return request
+		return reqForm
 	}
 	n := uint32(r.Int31n(int32(clientWeigh.weighCount)))
 	var (
@@ -89,7 +89,7 @@ func getRequest(request *model.RequestForm) *model.RequestForm {
 	for _, value := range clientWeigh.list {
 		if count >= n {
 			// value.req.Print()
-			return value.req
+			return value.reqF
 		}
 		count = count + value.weights
 	}

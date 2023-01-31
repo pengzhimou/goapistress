@@ -15,7 +15,7 @@ import (
 )
 
 // HTTP 请求
-func HTTP(ctx context.Context, chanID uint64, ch chan<- *model.RequestResults, totalNumber uint64, wg *sync.WaitGroup, request *model.RequestForm) {
+func HTTP(ctx context.Context, chanID uint64, ch chan<- *model.RequestResults, totalNumber uint64, wg *sync.WaitGroup, reqForm *model.RequestForm) {
 	defer func() {
 		wg.Done()
 	}()
@@ -26,7 +26,7 @@ func HTTP(ctx context.Context, chanID uint64, ch chan<- *model.RequestResults, t
 			break
 		}
 
-		listRF := getRequestList(request)
+		listRF := getRequestList(reqForm)
 		isSucceed, errCode, requestTime, contentLength := sendList(chanID, listRF)
 		requestResults := &model.RequestResults{
 			Time:          requestTime,
@@ -56,7 +56,7 @@ func sendList(chanID uint64, listRF []*model.RequestForm) (isSucceed bool, errCo
 }
 
 // send 发送一次请求
-func send(chanID uint64, rF *model.RequestForm) (bool, int, uint64, int64) {
+func send(chanID uint64, reqForm *model.RequestForm) (bool, int, uint64, int64) {
 	var (
 		// startTime = time.Now()
 		isSucceed     = false
@@ -66,9 +66,9 @@ func send(chanID uint64, rF *model.RequestForm) (bool, int, uint64, int64) {
 		resp          *http.Response
 		requestTime   uint64
 	)
-	newRequest := getRequest(rF)
+	newReqForm := getRequest(reqForm)
 
-	resp, requestTime, err = client.HTTPRequest(chanID, newRequest)
+	resp, requestTime, err = client.HTTPRequest(chanID, newReqForm)
 
 	if err != nil {
 		errCode = model.RequestErr // 请求错误
@@ -79,7 +79,7 @@ func send(chanID uint64, rF *model.RequestForm) (bool, int, uint64, int64) {
 			contentLength = resp.ContentLength
 		}
 		// 验证请求是否成功
-		errCode, isSucceed = newRequest.GetVerifyHTTP()(newRequest, resp)
+		errCode, isSucceed = newReqForm.GetVerifyHTTP()(newReqForm, resp)
 	}
 	return isSucceed, errCode, requestTime, contentLength
 }
