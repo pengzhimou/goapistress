@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"goapistress/tools"
 	"io"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -17,9 +16,9 @@ const (
 	// HTTPOk 请求成功
 	HTTPOk = 200
 	// RequestErr 请求错误
-	RequestErr = 509
+	RequestErr = 1509
 	// ParseError 解析错误
-	ParseError = 510 // 解析错误
+	ParseError = 1510 // 解析错误
 )
 
 // 支持协议
@@ -68,7 +67,7 @@ type Verify interface {
 }
 
 // VerifyHTTP http 验证
-type VerifyHTTP func(request *RequestForm, response *http.Response) (code int, isSucceed bool)
+type VerifyHTTP func(request *RequestForm, respCode int, respBody []byte) (code int, isSucceed bool)
 
 // VerifyWebSocket webSocket 验证
 type VerifyWebSocket func(request *RequestForm, seq string, msg []byte) (code int, isSucceed bool)

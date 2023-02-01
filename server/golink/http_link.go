@@ -2,6 +2,7 @@
 package golink
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 
 	"goapistress/model"
 	"goapistress/server/client"
+	"goapistress/server/verify"
 )
 
 // HTTP 请求
@@ -58,7 +60,6 @@ func sendList(chanID uint64, listRF []*model.RequestForm) (isSucceed bool, errCo
 // send 发送一次请求
 func send(chanID uint64, reqForm *model.RequestForm) (bool, int, uint64, int64) {
 	var (
-		// startTime = time.Now()
 		isSucceed     = false
 		errCode       = model.HTTPOk
 		contentLength = int64(0)
@@ -82,9 +83,16 @@ func send(chanID uint64, reqForm *model.RequestForm) (bool, int, uint64, int64) 
 		if err != nil {
 			contentLength = resp.ContentLength
 		}
+
 		// 验证请求是否成功，失败则直接返回，全成功则最外层退出
+		respCode, respBodyGetBodyData, err := verify.GetStatusCodeAndBody(reqForm, resp)
+		if err != nil {
+			errCode, isSucceed = model.RequestErr, false
+			fmt.Println("从GetStatusCodeAndBody取得statuscode或body有错误")
+			return isSucceed, errCode, requestTime, contentLength
+		}
 		for _, f := range newReqForm.GetVerifyHTTP() {
-			errCode, isSucceed = f(newReqForm, resp)
+			errCode, isSucceed = f(newReqForm, respCode, respBodyGetBodyData)
 			if !isSucceed {
 				return isSucceed, errCode, requestTime, contentLength
 			}
@@ -106,5 +114,6 @@ func getBodyLength(response *http.Response) (length int64, err error) {
 		reader = response.Body
 	}
 	body, err := ioutil.ReadAll(reader)
+	response.Body = ioutil.NopCloser(bytes.NewReader(body))
 	return int64(len(body)), err
 }
