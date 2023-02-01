@@ -11,6 +11,7 @@ import (
 
 	"goapistress/model"
 	"goapistress/server"
+	"goapistress/tools"
 )
 
 // array 自定义数组参数
@@ -24,27 +25,26 @@ func (a *array) String() string {
 // Set set
 func (a *array) Set(s string) error {
 	*a = append(*a, s)
-
 	return nil
 }
 
 var (
-	concurrency       uint64 = 1       // 并发数
-	reqNumbersPerProd uint64 = 1       // 请求数(单个并发/协程)
-	debugStr                 = "false" // 是否是debug
-	curlFilePath             = ""      // curl文件路径 http接口压测，自定义参数设置
-	requestURL               = ""      // 压测的url 目前支持，http/https ws/wss
-	method                   = "GET"   // http 方法
-	headers           array            // 自定义头信息传递给服务器
-	body                     = ""      // HTTP POST方式传送数据
-	verify                   = ""      // verify 验证方法 在server/verify中 http 支持:statusCode、json webSocket支持:json
-	statusCode               = 200     // 成功状态码
-	maxCon                   = 1       // 单个连接最大请求数
-	http2                    = false   // 是否开http2.0
-	keepalive                = false   // 是否开启长连接
-	cpuNumber                = 1       // CPU 核数，一般场景下单核已经够用了
-	clientTimeout     int    = 30      // http client超时时间，默认不设置
-	taskTimeout       int    = 3600    // task timeout context 控制
+	concurrency       uint64          = 1                        // 并发数
+	reqNumbersPerProd uint64          = 1                        // 请求数(单个并发/协程)
+	debugStr                          = "false"                  // 是否是debug
+	curlFilePath                      = ""                       // curl文件路径 http接口压测，自定义参数设置
+	requestURL                        = ""                       // 压测的url 目前支持，http/https ws/wss
+	method                            = "GET"                    // http 方法
+	headers           tools.FlagSlice = make(tools.FlagSlice, 0) // 自定义头信息传递给服务器
+	body                              = ""                       // HTTP POST方式传送数据
+	verify            tools.FlagMap   = make(tools.FlagMap)      // verify 验证方法 在server/verify中 http 支持:statusCode、json webSocket支持:json
+	statusCode                        = 200                      // 成功状态码
+	maxCon                            = 1                        // 单个连接最大请求数
+	http2                             = false                    // 是否开http2.0
+	keepalive                         = false                    // 是否开启长连接
+	cpuNumber                         = 1                        // CPU 核数，一般场景下单核已经够用了
+	clientTimeout     int             = 30                       // http client超时时间，默认不设置
+	taskTimeout       int             = 3600                     // task timeout context 控制
 )
 
 func init() {
@@ -54,7 +54,7 @@ func init() {
 	flag.StringVar(&curlFilePath, "p", curlFilePath, "curl文件路径")
 	flag.StringVar(&requestURL, "u", requestURL, "压测地址")
 	flag.StringVar(&method, "x", method, "http请求方法")
-	flag.StringVar(&verify, "v", verify, "验证方法 http 支持:statusCode、json webSocket支持:json")
+	flag.Var(&verify, "v", "验证方法 http 支持:statusCode、json webSocket支持:json")
 	flag.Var(&headers, "H", "自定义头信息传递给服务器 示例:-H 'Content-Type: application/json'")
 	flag.StringVar(&body, "data", body, "HTTP POST方式传送数据")
 	flag.IntVar(&maxCon, "m", maxCon, "单个host最大连接数")

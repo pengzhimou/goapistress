@@ -66,9 +66,13 @@ func send(chanID uint64, reqForm *model.RequestForm) (bool, int, uint64, int64) 
 		resp          *http.Response
 		requestTime   uint64
 	)
+
 	newReqForm := getRequest(reqForm)
 
 	resp, requestTime, err = client.HTTPRequest(chanID, newReqForm)
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if err != nil {
 		errCode = model.RequestErr // 请求错误
@@ -78,8 +82,13 @@ func send(chanID uint64, reqForm *model.RequestForm) (bool, int, uint64, int64) 
 		if err != nil {
 			contentLength = resp.ContentLength
 		}
-		// 验证请求是否成功
-		errCode, isSucceed = newReqForm.GetVerifyHTTP()(newReqForm, resp)
+		// 验证请求是否成功，失败则直接返回，全成功则最外层退出
+		for _, f := range newReqForm.GetVerifyHTTP() {
+			errCode, isSucceed = f(newReqForm, resp)
+			if !isSucceed {
+				return isSucceed, errCode, requestTime, contentLength
+			}
+		}
 	}
 	return isSucceed, errCode, requestTime, contentLength
 }

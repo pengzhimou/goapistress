@@ -46,10 +46,10 @@ var (
 )
 
 // RegisterVerifyHTTP 注册 http 校验函数
-func RegisterVerifyHTTP(verify string, verifyFunc VerifyHTTP) {
+func RegisterVerifyHTTP(verifyType string, verifyFunc VerifyHTTP) {
 	verifyMapHTTPMutex.Lock()
 	defer verifyMapHTTPMutex.Unlock()
-	key := fmt.Sprintf("%s.%s", MPTypeHTTP, verify)
+	key := fmt.Sprintf("%s.%s", MPTypeHTTP, verifyType)
 	verifyMapHTTP[key] = verifyFunc
 }
 
@@ -80,8 +80,7 @@ type RequestForm struct {
 	Method        string            // 方法 GET/POST/PUT
 	Headers       map[string]string // Headers
 	Body          string            // body
-	Verify        string            // 验证的方法
-	StatusCode    int               // 验证的状态码
+	Verify        tools.FlagMap     // 验证的方法
 	ClientTimeout time.Duration     // 请求超时时间
 	Debug         bool              // 是否开启Debug模式
 	MaxCon        int               // 每个连接的请求数
@@ -99,20 +98,40 @@ func (r *RequestForm) getVerifyKey() (key string) {
 	return fmt.Sprintf("%s.%s", r.MP, r.Verify)
 }
 
-// GetVerifyHTTP 获取数据校验方法
-func (r *RequestForm) GetVerifyHTTP() VerifyHTTP {
-	verify, ok := verifyMapHTTP[r.getVerifyKey()]
-	if !ok {
-		panic("GetVerifyHTTP 验证方法不存在:" + r.Verify)
+// getVerifyKey 获取校验 key
+func (r *RequestForm) getVerifyKeys() (key []string) {
+	for k, _ := range r.Verify {
+		key = append(key, fmt.Sprintf("%s.%s", r.MP, k))
 	}
-	return verify
+	return
+}
+
+// // GetVerifyHTTP 获取数据校验方法
+// func (r *RequestForm) GetVerifyHTTP() VerifyHTTP {
+// 	verify, ok := verifyMapHTTP[r.getVerifyKey()]
+// 	if !ok {
+// 		panic("GetVerifyHTTP 验证方法不存在:" + r.Verify.String())
+// 	}
+// 	return verify
+// }
+
+// GetVerifyHTTP 获取数据校验方法
+func (r *RequestForm) GetVerifyHTTP() (verifyFuncs []VerifyHTTP) {
+	for _, k := range r.getVerifyKeys() {
+		verifyf, ok := verifyMapHTTP[k]
+		if !ok {
+			panic("GetVerifyHTTP 验证方法不存在:" + r.Verify.String())
+		}
+		verifyFuncs = append(verifyFuncs, verifyf)
+	}
+	return
 }
 
 // GetVerifyWebSocket 获取数据校验方法
 func (r *RequestForm) GetVerifyWebSocket() VerifyWebSocket {
 	verify, ok := verifyMapWebSocket[r.getVerifyKey()]
 	if !ok {
-		panic("GetVerifyWebSocket 验证方法不存在:" + r.Verify)
+		panic("GetVerifyWebSocket 验证方法不存在:" + r.Verify.String())
 	}
 	return verify
 }
@@ -123,7 +142,7 @@ func (r *RequestForm) GetVerifyWebSocket() VerifyWebSocket {
 // timeout 请求超时时间
 // debug 是否开启debug
 // path curl文件路径 http接口压测，自定义参数设置
-func NewReqForm(requrl, method, verify string, statusCode int, clientTimeout time.Duration, debug bool, curlFilePath string, reqHeaders []string, reqBody string, maxCon int, http2, keepalive bool) (request *RequestForm, err error) {
+func NewReqForm(requrl, method string, verify tools.FlagMap, statusCode int, clientTimeout time.Duration, debug bool, curlFilePath string, reqHeaders []string, reqBody string, maxCon int, http2, keepalive bool) (request *RequestForm, err error) {
 	var (
 		headers = make(map[string]string)
 		body    string
@@ -178,24 +197,27 @@ func NewReqForm(requrl, method, verify string, statusCode int, clientTimeout tim
 	switch mainProtocol {
 	case MPTypeHTTP:
 		// verify
-		if verify == "" {
-			verify = "statusCode"
+		if len(verify) == 0 {
+			verify["statusCode"] = "200"
 		}
-		key := fmt.Sprintf("%s.%s", mainProtocol, verify)
+		key := fmt.Sprintf("%s.%s", mainProtocol, "statusCode")
+		// fmt.Println("===========")
+		// fmt.Println(verifyMapHTTP)
+		// fmt.Println("===========")
 		_, ok = verifyMapHTTP[key]
 		if !ok {
-			err = errors.New("验证器不存在:" + key)
+			err = errors.New("验证器不存在MPTypeHTTP:" + key)
 			return
 		}
 	case MPTypeWebSocket:
 		// verify
-		if verify == "" {
-			verify = "json"
+		if len(verify) == 0 {
+			verify["json"] = "{'code':200}"
 		}
-		key := fmt.Sprintf("%s.%s", mainProtocol, verify)
+		key := fmt.Sprintf("%s.%s", mainProtocol, "json")
 		_, ok = verifyMapWebSocket[key]
 		if !ok {
-			err = errors.New("验证器不存在:" + key)
+			err = errors.New("验证器不存在MPTypeWebSocket:" + key)
 			return
 		}
 	}
@@ -212,7 +234,6 @@ func NewReqForm(requrl, method, verify string, statusCode int, clientTimeout tim
 		MaxCon:        maxCon,
 		HTTP2:         http2,
 		Keepalive:     keepalive,
-		StatusCode:    statusCode,
 	}
 	return
 }
@@ -235,18 +256,18 @@ func (r *RequestForm) GetDebug() bool {
 	return r.Debug
 }
 
-// IsParameterLegal 参数是否合法
-func (r *RequestForm) IsParameterLegal() (err error) {
-	r.MP = "http"
-	// statusCode json
-	r.Verify = "json"
-	key := fmt.Sprintf("%s.%s", r.MP, r.Verify)
-	_, ok := verifyMapHTTP[key]
-	if !ok {
-		return errors.New("验证器不存在:" + key)
-	}
-	return
-}
+// // IsParameterLegal 参数是否合法
+// func (r *RequestForm) IsParameterLegal() (err error) {
+// 	r.MP = "http"
+// 	// statusCode json
+// 	r.Verify = "json"
+// 	key := fmt.Sprintf("%s.%s", r.MP, r.Verify)
+// 	_, ok := verifyMapHTTP[key]
+// 	if !ok {
+// 		return errors.New("验证器不存在:" + key)
+// 	}
+// 	return
+// }
 
 // RequestResults 请求结果
 type RequestResults struct {
