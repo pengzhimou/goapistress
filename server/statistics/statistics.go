@@ -4,6 +4,7 @@ package statistics
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -78,18 +79,23 @@ func ReceivingResults(concurrent uint64, chanResults <-chan *model.RequestResult
 			minTime = data.Time
 		}
 		// 是否请求成功
-		if data.IsSucceed == true {
+		if data.IsSucceed {
 			successNum = successNum + 1
 		} else {
 			failureNum = failureNum + 1
 		}
+
 		// 统计错误码
-		if value, ok := errCode.Load(data.ErrCode); ok {
-			valueInt, _ := value.(int)
-			errCode.Store(data.ErrCode, valueInt+1)
-		} else {
-			errCode.Store(data.ErrCode, 1)
+		for k, v := range data.RtnCode {
+			vs := strconv.Itoa(v)
+			if value, ok := errCode.Load(k + vs); ok {
+				valueInt, _ := value.(int)
+				errCode.Store(k+vs, valueInt+1)
+			} else {
+				errCode.Store(k+vs, 1)
+			}
 		}
+
 		receivedBytes += data.ReceivedBytes
 		if _, ok := chanIDs[data.ChanID]; !ok {
 			chanIDs[data.ChanID] = true

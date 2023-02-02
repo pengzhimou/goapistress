@@ -58,7 +58,7 @@ func init() {
 	flag.Var(&headers, "H", "自定义头信息传递给服务器 示例:-H 'Content-Type: application/json'")
 	flag.StringVar(&body, "data", body, "HTTP POST方式传送数据")
 	flag.IntVar(&maxCon, "m", maxCon, "单个host最大连接数")
-	flag.IntVar(&statusCode, "statuscode", statusCode, "请求成功的状态码")
+	flag.IntVar(&statusCode, "statusCode", statusCode, "请求成功的状态码")
 	flag.BoolVar(&http2, "http2", http2, "是否开http2.0")
 	flag.BoolVar(&keepalive, "k", keepalive, "是否开启长连接")
 	flag.IntVar(&cpuNumber, "cpuNumber", cpuNumber, "CPU 核数，默认为一核")

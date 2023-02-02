@@ -67,10 +67,10 @@ type Verify interface {
 }
 
 // VerifyHTTP http 验证
-type VerifyHTTP func(request *RequestForm, respCode int, respBody []byte) (code int, isSucceed bool)
+type VerifyHTTP func(request *RequestForm, respCode int, respBody []byte) (code map[string]int, isSucceed bool)
 
 // VerifyWebSocket webSocket 验证
-type VerifyWebSocket func(request *RequestForm, seq string, msg []byte) (code int, isSucceed bool)
+type VerifyWebSocket func(request *RequestForm, seq string, msg []byte) (code map[string]int, isSucceed bool)
 
 // RequestForm 请求数据
 type RequestForm struct {
@@ -270,11 +270,11 @@ func (r *RequestForm) GetDebug() bool {
 
 // RequestResults 请求结果
 type RequestResults struct {
-	ID            string // 消息ID
-	ChanID        uint64 // 消息ID
-	Time          uint64 // 请求时间 纳秒
-	IsSucceed     bool   // 是否请求成功
-	ErrCode       int    // 错误码
+	ID            string         // 消息ID
+	ChanID        uint64         // 消息ID
+	Time          uint64         // 请求时间 纳秒
+	IsSucceed     bool           // 是否请求成功
+	RtnCode       map[string]int // 错误码
 	ReceivedBytes int64
 }
 

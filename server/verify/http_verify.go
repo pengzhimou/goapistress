@@ -41,7 +41,7 @@ func GetStatusCodeAndBody(reqForm *model.RequestForm, response *http.Response) (
 }
 
 // HTTPStatusCode 通过 HTTP 状态码判断是否请求成功
-func HTTPStatusCode(reqForm *model.RequestForm, respCode int, respBody []byte) (code int, isSucceed bool) {
+func HTTPStatusCode(reqForm *model.RequestForm, respCode int, respBody []byte) (code map[string]int, isSucceed bool) {
 	exptCode, err := strconv.Atoi(reqForm.Verify["statusCode"])
 	if err != nil {
 		panic("没有期待的statusCode," + err.Error())
@@ -49,7 +49,7 @@ func HTTPStatusCode(reqForm *model.RequestForm, respCode int, respBody []byte) (
 	if respCode == exptCode {
 		isSucceed = true
 	}
-	code = respCode
+	code = map[string]int{"statusCode": respCode}
 	return
 }
 
@@ -65,7 +65,7 @@ type ResponseJSON struct {
 
 // HTTPJson  通过返回的Body 判断
 // 返回示例: {"code":200,"msg":"Success","data":{}}
-func HTTPJson(reqForm *model.RequestForm, respCode int, respBody []byte) (code int, isSucceed bool) {
+func HTTPJson(reqForm *model.RequestForm, respCode int, respBody []byte) (code map[string]int, isSucceed bool) {
 	// statuscode无用
 	_ = respCode
 
@@ -89,7 +89,7 @@ func HTTPJson(reqForm *model.RequestForm, respCode int, respBody []byte) (code i
 			isSucceed = false
 		}
 
-		code = jsonCode
+		code = map[string]int{"jsonCode": jsonCode}
 	}
 
 	return

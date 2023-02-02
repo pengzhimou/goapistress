@@ -33,7 +33,7 @@ func HTTP(ctx context.Context, chanID uint64, chanResults chan<- *model.RequestR
 		requestResults := &model.RequestResults{
 			Time:          requestTime,
 			IsSucceed:     isSucceed,
-			ErrCode:       errCode,
+			RtnCode:       errCode,
 			ReceivedBytes: contentLength,
 		}
 		requestResults.SetID(chanID, i)
@@ -42,8 +42,8 @@ func HTTP(ctx context.Context, chanID uint64, chanResults chan<- *model.RequestR
 }
 
 // sendList 多个接口分步压测
-func sendList(chanID uint64, listRF []*model.RequestForm) (isSucceed bool, errCode int, requestTime uint64, contentLength int64) {
-	errCode = model.HTTPOk
+func sendList(chanID uint64, listRF []*model.RequestForm) (isSucceed bool, errCode map[string]int, requestTime uint64, contentLength int64) {
+	errCode = map[string]int{"statusCode": model.HTTPOk}
 	for _, rF := range listRF {
 		succeed, code, u, length := send(chanID, rF)
 		isSucceed = succeed
@@ -58,10 +58,10 @@ func sendList(chanID uint64, listRF []*model.RequestForm) (isSucceed bool, errCo
 }
 
 // send 发送一次请求
-func send(chanID uint64, reqForm *model.RequestForm) (bool, int, uint64, int64) {
+func send(chanID uint64, reqForm *model.RequestForm) (bool, map[string]int, uint64, int64) {
 	var (
 		isSucceed     = false
-		errCode       = model.HTTPOk
+		rtnCode       = make(map[string]int)
 		contentLength = int64(0)
 		err           error
 		resp          *http.Response
@@ -71,34 +71,43 @@ func send(chanID uint64, reqForm *model.RequestForm) (bool, int, uint64, int64) 
 	newReqForm := getRequest(reqForm)
 
 	resp, requestTime, err = client.HTTPRequest(chanID, newReqForm)
-	defer func() {
-		_ = resp.Body.Close()
-	}()
 
 	if err != nil {
-		errCode = model.RequestErr // 请求错误
+		rtnCode = map[string]int{"reqerr": model.RequestErr} // 请求错误
 	} else {
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		// 此处原方式获取的数据长度可能是 -1，换成如下方式获取可获取到正确的长度
 		contentLength, err = getBodyLength(resp)
 		if err != nil {
 			contentLength = resp.ContentLength
 		}
 
-		// 验证请求是否成功，失败则直接返回，全成功则最外层退出
+		// 验证请求结果
 		respCode, respBodyGetBodyData, err := verify.GetStatusCodeAndBody(reqForm, resp)
 		if err != nil {
-			errCode, isSucceed = model.RequestErr, false
+			rtnCode, isSucceed = map[string]int{"reqerr": model.RequestErr}, false
 			fmt.Println("从GetStatusCodeAndBody取得statuscode或body有错误")
-			return isSucceed, errCode, requestTime, contentLength
+			return isSucceed, rtnCode, requestTime, contentLength
 		}
+
+		tempmap := map[string]int{}
+		tempisSucceed := true
 		for _, f := range newReqForm.GetVerifyHTTP() {
-			errCode, isSucceed = f(newReqForm, respCode, respBodyGetBodyData)
+			rtnCode, isSucceed = f(newReqForm, respCode, respBodyGetBodyData)
+			for k, v := range rtnCode {
+				tempmap[k] = v
+			}
 			if !isSucceed {
-				return isSucceed, errCode, requestTime, contentLength
+				tempisSucceed = false
+				// return isSucceed, rtnCode, requestTime, contentLength
 			}
 		}
+		isSucceed = tempisSucceed
+		rtnCode = tempmap
 	}
-	return isSucceed, errCode, requestTime, contentLength
+	return isSucceed, rtnCode, requestTime, contentLength
 }
 
 // getBodyLength 获取响应数据长度
