@@ -17,7 +17,7 @@ import (
 )
 
 // HTTP 请求
-func HTTP(ctx context.Context, chanID uint64, ch chan<- *model.RequestResults, totalNumber uint64, wg *sync.WaitGroup, reqForm *model.RequestForm) {
+func HTTP(ctx context.Context, chanID uint64, chanResults chan<- *model.RequestResults, totalNumber uint64, wg *sync.WaitGroup, reqForm *model.RequestForm) {
 	defer func() {
 		wg.Done()
 	}()
@@ -37,7 +37,7 @@ func HTTP(ctx context.Context, chanID uint64, ch chan<- *model.RequestResults, t
 			ReceivedBytes: contentLength,
 		}
 		requestResults.SetID(chanID, i)
-		ch <- requestResults
+		chanResults <- requestResults
 	}
 }
 

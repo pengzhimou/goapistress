@@ -26,7 +26,7 @@ var (
 // ReceivingResults 接收结果并处理
 // 统计的时间都是纳秒，显示的时间 都是毫秒
 // concurrent 并发数
-func ReceivingResults(concurrent uint64, ch <-chan *model.RequestResults, wg *sync.WaitGroup) {
+func ReceivingResults(concurrent uint64, chanResults <-chan *model.RequestResults, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
 	}()
@@ -64,8 +64,8 @@ func ReceivingResults(concurrent uint64, ch <-chan *model.RequestResults, wg *sy
 			}
 		}
 	}()
-	header()
-	for data := range ch {
+	header() // go calculateData前更直观，但ticker.C 1s后才运行，所以必然header先运行
+	for data := range chanResults {
 		mutex.Lock()
 		// fmt.Println("处理一条数据", data.ID, data.Time, data.IsSucceed, data.ErrCode)
 		processingTime = processingTime + data.Time

@@ -33,19 +33,19 @@ func init() {
 // Dispose 处理函数
 func Dispose(ctx context.Context, concurrency, reqNumbersPerProd uint64, reqForm *model.RequestForm) {
 	// 设置接收数据缓存
-	ch := make(chan *model.RequestResults, 1000)
+	chanResults := make(chan *model.RequestResults, 1000)
 	var (
 		wg          sync.WaitGroup // 发送数据完成
 		wgReceiving sync.WaitGroup // 数据处理完成
 	)
 	wgReceiving.Add(1)
-	go statistics.ReceivingResults(concurrency, ch, &wgReceiving)
+	go statistics.ReceivingResults(concurrency, chanResults, &wgReceiving)
 
 	for chanID := uint64(0); chanID < concurrency; chanID++ {
 		wg.Add(1)
 		switch reqForm.MP {
 		case model.MPTypeHTTP:
-			go golink.HTTP(ctx, chanID, ch, reqNumbersPerProd, &wg, reqForm)
+			go golink.HTTP(ctx, chanID, chanResults, reqNumbersPerProd, &wg, reqForm)
 		case model.MPTypeWebSocket:
 			switch connectionMode {
 			case 1:
@@ -56,7 +56,7 @@ func Dispose(ctx context.Context, concurrency, reqNumbersPerProd uint64, reqForm
 					fmt.Println("连接失败:", chanID, err)
 					continue
 				}
-				go golink.WebSocket(ctx, chanID, ch, reqNumbersPerProd, &wg, reqForm, ws)
+				go golink.WebSocket(ctx, chanID, chanResults, reqNumbersPerProd, &wg, reqForm, ws)
 			case 2:
 				// 并发建立长链接
 				go func(i uint64) {
@@ -67,7 +67,7 @@ func Dispose(ctx context.Context, concurrency, reqNumbersPerProd uint64, reqForm
 						fmt.Println("连接失败:", i, err)
 						return
 					}
-					golink.WebSocket(ctx, i, ch, reqNumbersPerProd, &wg, reqForm, ws)
+					golink.WebSocket(ctx, i, chanResults, reqNumbersPerProd, &wg, reqForm, ws)
 				}(chanID)
 				// 注意:时间间隔太短会出现连接失败的报错 默认连接时长:20毫秒(公网连接)
 				time.Sleep(5 * time.Millisecond)
@@ -83,10 +83,10 @@ func Dispose(ctx context.Context, concurrency, reqNumbersPerProd uint64, reqForm
 				fmt.Println("连接失败:", chanID, err)
 				continue
 			}
-			go golink.Grpc(ctx, chanID, ch, reqNumbersPerProd, &wg, reqForm, ws)
+			go golink.Grpc(ctx, chanID, chanResults, reqNumbersPerProd, &wg, reqForm, ws)
 		case model.MPTypeRadius:
 			// Radius use udp, does not a connection
-			go golink.Radius(ctx, chanID, ch, reqNumbersPerProd, &wg, reqForm)
+			go golink.Radius(ctx, chanID, chanResults, reqNumbersPerProd, &wg, reqForm)
 
 		default:
 			// 类型不支持
@@ -97,7 +97,7 @@ func Dispose(ctx context.Context, concurrency, reqNumbersPerProd uint64, reqForm
 	wg.Wait()
 	// 延时1毫秒 确保数据都处理完成了
 	time.Sleep(1 * time.Millisecond)
-	close(ch)
+	close(chanResults)
 	// 数据全部处理完成了
 	wgReceiving.Wait()
 	return
