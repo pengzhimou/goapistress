@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+const (
+	authBasic      = "basic"
+	authTkexToken  = "tkextoken"
+	authForceHttps = "forcehttps"
+)
+
 func computeSha256(str string) string {
 
 	h := sha256.New()
@@ -46,3 +52,14 @@ func setAuth(req *http.Request, apiAccount string, apiToken string, reqPath stri
 // 	}
 // 	return c
 // }
+
+func (r *RequestForm) setAuth() {
+	switch r.AuthType {
+	case authBasic:
+		r.Headers["username"] = r.AuthData["username"]
+		r.Headers["password"] = r.AuthData["password"]
+	case authTkexToken:
+
+	case authForceHttps:
+	}
+}

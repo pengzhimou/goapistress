@@ -18,12 +18,12 @@ var (
 )
 
 // NewClient new
-func NewClient(i uint64, request *model.RequestForm) *http.Client {
+func NewClient(i uint64, reqForm *model.RequestForm) *http.Client {
 	client := getClient(i)
 	if client != nil {
 		return client
 	}
-	return setClient(i, request)
+	return setClient(i, reqForm)
 }
 
 func getClient(i uint64) *http.Client {
@@ -32,18 +32,18 @@ func getClient(i uint64) *http.Client {
 	return clients[i]
 }
 
-func setClient(i uint64, request *model.RequestForm) *http.Client {
+func setClient(i uint64, reqForm *model.RequestForm) *http.Client {
 	mutex.Lock()
 	defer mutex.Unlock()
-	client := createLangHttpClient(request)
+	client := createLongHttpClient(reqForm)
 	clients[i] = client
 	return client
 }
 
 // createLangHttpClient 初始化长连接客户端参数
-func createLangHttpClient(request *model.RequestForm) *http.Client {
+func createLongHttpClient(reqForm *model.RequestForm) *http.Client {
 	tr := &http.Transport{}
-	if request.HTTP2 {
+	if reqForm.HTTP2 {
 		// 使用真实证书 验证证书 模拟真实请求
 		tr = &http.Transport{
 			DialContext: (&net.Dialer{
@@ -51,9 +51,13 @@ func createLangHttpClient(request *model.RequestForm) *http.Client {
 				KeepAlive: 30 * time.Second,
 			}).DialContext,
 			MaxIdleConns:        0,                // 最大连接数,默认0无穷大
-			MaxIdleConnsPerHost: request.MaxCon,   // 对每个host的最大连接数量(MaxIdleConnsPerHost<=MaxIdleConns)
+			MaxIdleConnsPerHost: reqForm.MaxCon,   // 对每个host的最大连接数量(MaxIdleConnsPerHost<=MaxIdleConns)
 			IdleConnTimeout:     90 * time.Second, // 多长时间未使用自动关闭连接
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: false},
+			TLSClientConfig: &tls.Config{
+				// InsecureSkipVerify: false,
+				InsecureSkipVerify: true,
+				Certificates:       []tls.Certificate{*reqForm.TLSCertificate},
+			},
 		}
 		_ = http2.ConfigureTransport(tr)
 	} else {
@@ -64,9 +68,12 @@ func createLangHttpClient(request *model.RequestForm) *http.Client {
 				KeepAlive: 30 * time.Second,
 			}).DialContext,
 			MaxIdleConns:        0,                // 最大连接数,默认0无穷大
-			MaxIdleConnsPerHost: request.MaxCon,   // 对每个host的最大连接数量(MaxIdleConnsPerHost<=MaxIdleConns)
+			MaxIdleConnsPerHost: reqForm.MaxCon,   // 对每个host的最大连接数量(MaxIdleConnsPerHost<=MaxIdleConns)
 			IdleConnTimeout:     90 * time.Second, // 多长时间未使用自动关闭连接
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+				Certificates:       []tls.Certificate{*reqForm.TLSCertificate},
+			},
 		}
 	}
 	return &http.Client{

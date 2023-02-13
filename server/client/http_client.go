@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"goapistress/model"
-	httplongclinet "goapistress/server/client/http_longclinet"
+	httplongclinet "goapistress/server/client/http_longclient"
 	"goapistress/tools"
 
 	"golang.org/x/net/http2"
@@ -24,12 +24,12 @@ var logErr = log.New(os.Stderr, "", 0)
 // body 请求的body
 // headers 请求头信息
 // timeout 请求超时时间
-func HTTPRequest(chanID uint64, request *model.RequestForm) (resp *http.Response, requestTime uint64, err error) {
-	method := request.Method
-	url := request.URL
-	body := request.GetBody()
-	timeout := request.ClientTimeout
-	headers := request.Headers
+func HTTPRequest(chanID uint64, reqForm *model.RequestForm) (resp *http.Response, requestTime uint64, err error) {
+	method := reqForm.Method
+	url := reqForm.URL
+	body := reqForm.GetBody()
+	timeout := reqForm.ClientTimeout
+	headers := reqForm.Headers
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -51,8 +51,8 @@ func HTTPRequest(chanID uint64, request *model.RequestForm) (resp *http.Response
 		req.Header.Set(key, value)
 	}
 	var client *http.Client
-	if request.Keepalive {
-		client = httplongclinet.NewClient(chanID, request)
+	if reqForm.Keepalive { // 长链接 client
+		client = httplongclinet.NewClient(chanID, reqForm)
 		startTime := time.Now()
 		resp, err = client.Do(req)
 		requestTime = uint64(tools.DiffNano(startTime))
@@ -62,13 +62,17 @@ func HTTPRequest(chanID uint64, request *model.RequestForm) (resp *http.Response
 			return
 		}
 		return
-	} else {
+	} else { // 短链接 client
 		req.Close = true
 		tr := &http.Transport{}
-		if request.HTTP2 {
-			// 使用真实证书 验证证书 模拟真实请求
+		if reqForm.HTTP2 {
+			// 使用真实证书 验证证书 没必要
 			tr = &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
+				TLSClientConfig: &tls.Config{
+					// InsecureSkipVerify: false,
+					InsecureSkipVerify: true,
+					Certificates:       []tls.Certificate{*reqForm.TLSCertificate},
+				},
 			}
 			if err = http2.ConfigureTransport(tr); err != nil {
 				return
@@ -76,7 +80,10 @@ func HTTPRequest(chanID uint64, request *model.RequestForm) (resp *http.Response
 		} else {
 			// 跳过证书验证
 			tr = &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+					Certificates:       []tls.Certificate{*reqForm.TLSCertificate},
+				},
 			}
 		}
 

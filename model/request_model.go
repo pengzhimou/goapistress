@@ -2,6 +2,8 @@
 package model
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"goapistress/tools"
@@ -74,17 +76,20 @@ type VerifyWebSocket func(request *RequestForm, seq string, msg []byte) (code ma
 
 // RequestForm 请求数据
 type RequestForm struct {
-	URL           string            // URL
-	MP            string            // http/webSocket/tcp
-	Method        string            // 方法 GET/POST/PUT
-	Headers       map[string]string // Headers
-	Body          string            // body
-	Verify        tools.FlagMap     // 验证的方法
-	ClientTimeout time.Duration     // 请求超时时间
-	Debug         bool              // 是否开启Debug模式
-	MaxCon        int               // 每个连接的请求数
-	HTTP2         bool              // 是否使用http2.0
-	Keepalive     bool              // 是否开启长连接
+	URL            string            // URL
+	MP             string            // http/webSocket/tcp
+	Method         string            // 方法 GET/POST/PUT
+	Headers        map[string]string // Headers
+	Body           string            // body
+	Verify         tools.FlagMap     // 验证的方法
+	ClientTimeout  time.Duration     // 请求超时时间
+	Debug          bool              // 是否开启Debug模式
+	MaxCon         int               // 每个连接的请求数
+	HTTP2          bool              // 是否使用http2.0
+	Keepalive      bool              // 是否开启长连接
+	TLSCertificate *tls.Certificate  // tls认证信息
+	AuthType       string            // auth type
+	AuthData       tools.FlagMap     // auth data
 }
 
 // GetBody 获取请求数据
@@ -135,19 +140,24 @@ func (r *RequestForm) GetVerifyWebSocket() VerifyWebSocket {
 	return verify
 }
 
+// Get tls certification data
+func (r *RequestForm) GetTLSCert(cert, key string) {
+	r.TLSCertificate = tlsCert(cert, key)
+}
+
 // NewReqForm 生成请求结构体
 // url 压测的url
 // verify 验证方法 在server/verify中 http 支持:statusCode、json webSocket支持:json
 // timeout 请求超时时间
 // debug 是否开启debug
 // path curl文件路径 http接口压测，自定义参数设置
-func NewReqForm(requrl, method string, verify tools.FlagMap, statusCode int, clientTimeout time.Duration, debug bool, curlFilePath string, reqHeaders []string, reqBody string, maxCon int, http2, keepalive bool) (request *RequestForm, err error) {
+func NewReqForm(requrl, method string, verify tools.FlagMap, statusCode int, clientTimeout time.Duration, debug bool, curlFilePath string, reqHeaders []string, reqBody string, maxCon int, http2, keepalive bool, certfile, keyfile string, authtype string, authdata tools.FlagMap) (reqForm *RequestForm, err error) {
 	var (
 		headers = make(map[string]string)
 		body    string
 	)
 
-	// 读取基本参数，赋值
+	// 读取基本参数，赋值 只支持部分能力，全面支持LATER
 	if curlFilePath != "" { // curl文件转换
 		var curl *CURL
 		curl, err = ParseTheFile(curlFilePath)
@@ -221,7 +231,7 @@ func NewReqForm(requrl, method string, verify tools.FlagMap, statusCode int, cli
 		}
 	}
 
-	request = &RequestForm{
+	reqForm = &RequestForm{
 		URL:           requrl,
 		MP:            mainProtocol,
 		Method:        strings.ToUpper(method),
@@ -233,7 +243,18 @@ func NewReqForm(requrl, method string, verify tools.FlagMap, statusCode int, cli
 		MaxCon:        maxCon,
 		HTTP2:         http2,
 		Keepalive:     keepalive,
+		AuthType:      authtype,
+		AuthData:      authdata,
 	}
+
+	// https的tlscert数据初始化
+	reqForm.GetTLSCert(certfile, keyfile)
+
+	// 认证方式初始化
+	/////
+	// Later
+	////
+
 	return
 }
 
@@ -283,4 +304,25 @@ func (r *RequestResults) SetID(chanID uint64, number uint64) {
 	id := fmt.Sprintf("%d_%d", chanID, number)
 	r.ID = id
 	r.ChanID = chanID
+}
+
+func tlsCert(certfile, keyfile string) *tls.Certificate {
+	cert := tls.Certificate{}
+	if certfile != "" && keyfile != "" {
+		certstmp, err := tls.LoadX509KeyPair(certfile, keyfile)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			cert = certstmp
+		}
+		ca, err := x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			fmt.Println(err)
+		}
+		pool := x509.NewCertPool()
+		pool.AddCert(ca)
+		return &cert
+	} else {
+		return nil
+	}
 }
