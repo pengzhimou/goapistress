@@ -56,8 +56,10 @@ func createLongHttpClient(reqForm *model.RequestForm) *http.Client {
 			TLSClientConfig: &tls.Config{
 				// InsecureSkipVerify: false,
 				InsecureSkipVerify: true,
-				Certificates:       []tls.Certificate{*reqForm.TLSCertificate},
 			},
+		}
+		if reqForm.TLSCertificate != nil {
+			tr.TLSClientConfig.Certificates = []tls.Certificate{*reqForm.TLSCertificate}
 		}
 		_ = http2.ConfigureTransport(tr)
 	} else {
@@ -72,8 +74,10 @@ func createLongHttpClient(reqForm *model.RequestForm) *http.Client {
 			IdleConnTimeout:     90 * time.Second, // 多长时间未使用自动关闭连接
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
-				Certificates:       []tls.Certificate{*reqForm.TLSCertificate},
 			},
+		}
+		if reqForm.TLSCertificate != nil {
+			tr.TLSClientConfig.Certificates = []tls.Certificate{*reqForm.TLSCertificate}
 		}
 	}
 	return &http.Client{

@@ -66,13 +66,15 @@ func HTTPRequest(chanID uint64, reqForm *model.RequestForm) (resp *http.Response
 		req.Close = true
 		tr := &http.Transport{}
 		if reqForm.HTTP2 {
-			// 使用真实证书 验证证书 没必要
+			// 使用真实证书 验证证书 // 没必要，跳过验证
 			tr = &http.Transport{
 				TLSClientConfig: &tls.Config{
 					// InsecureSkipVerify: false,
 					InsecureSkipVerify: true,
-					Certificates:       []tls.Certificate{*reqForm.TLSCertificate},
 				},
+			}
+			if reqForm.TLSCertificate != nil {
+				tr.TLSClientConfig.Certificates = []tls.Certificate{*reqForm.TLSCertificate}
 			}
 			if err = http2.ConfigureTransport(tr); err != nil {
 				return
@@ -82,8 +84,10 @@ func HTTPRequest(chanID uint64, reqForm *model.RequestForm) (resp *http.Response
 			tr = &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true,
-					Certificates:       []tls.Certificate{*reqForm.TLSCertificate},
 				},
+			}
+			if reqForm.TLSCertificate != nil {
+				tr.TLSClientConfig.Certificates = []tls.Certificate{*reqForm.TLSCertificate}
 			}
 		}
 
@@ -94,6 +98,11 @@ func HTTPRequest(chanID uint64, reqForm *model.RequestForm) (resp *http.Response
 	}
 
 	startTime := time.Now()
+
+	// 认证部分
+	reqForm.SetAuth(req)
+
+	// 实际请求
 	resp, err = client.Do(req)
 	requestTime = uint64(tools.DiffNano(startTime))
 	if err != nil {
