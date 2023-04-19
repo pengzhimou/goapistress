@@ -66,7 +66,7 @@ func init() {
 // handle args
 func argsCheck() bool {
 	if concurrency == 0 || reqNumbersPerProd == 0 || (requestURL == "" && curlFilePath == "") {
-		fmt.Printf("示例: go run main.go -c 1 -n 1 -u https://www.baidu.com/ \n")
+		fmt.Printf("示例: go run main.go -c 1 -n 1 -u https://www.xxx.com/ \n")
 		fmt.Printf("压测地址或curl路径必填 \n")
 		fmt.Printf("当前请求参数: -c %d -n %d -d %v -u %s \n", concurrency, reqNumbersPerProd, debugStr, requestURL)
 		flag.Usage()
